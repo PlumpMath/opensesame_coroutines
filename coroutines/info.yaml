@@ -1,0 +1,5 @@
+category: Miscellaneous
+version: 0.1.0
+controls:
+- label: Enter the script
+  type: text
