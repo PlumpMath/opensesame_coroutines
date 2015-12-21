@@ -19,8 +19,9 @@ along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
 
 from libopensesame.py3compat import *
 import os
-from PyQt4 import QtGui, QtCore
 from libqtopensesame.items.sequence import sequence
+from libqtopensesame.items.qtplugin import qtplugin
+from libopensesame.sequence import sequence as sequence_runtime
 from libqtopensesame.widgets.tree_item_item import tree_item_item
 from libqtopensesame.validators import duration_validator
 from libqtopensesame.misc import _
@@ -28,21 +29,29 @@ from oscoroutines import coroutines, items_adapter, tree_overview_adapter
 
 class qtcoroutines(coroutines, sequence):
 
-	def item_icon(self):
+	"""
+	desc:
+		The coroutines plugin GUI.
+	"""
+
+	def __init__(self, name, experiment, string=None):
 
 		"""See item."""
 
-		if self.qicon is not None:
-			return self.qicon
-		plugin_folder = os.path.dirname(os.path.dirname(__file__))
-		icon16 = os.path.join(
-			plugin_folder, u'%s.png' % self.item_type)
-		icon32 = os.path.join(
-			plugin_folder, u'%s_large.png' % self.item_type)
-		self.qicon = QtGui.QIcon()
-		self.qicon.addFile(icon16, QtCore.QSize(16, 16))
-		self.qicon.addFile(icon32, QtCore.QSize(32, 32))
-		return self.qicon
+		coroutines.__init__(self, name, experiment, string)
+		# We don't call the sequence constructor, because it doesn't specify
+		# the plugin_file to qtplugin, which we need to do.
+		sequence_runtime.__init__(self, name, experiment, string)
+		qtplugin.__init__(self, plugin_file=os.path.dirname(__file__))
+		self.last_removed_child = None, None
+
+	def reset(self):
+
+		"""See item."""
+
+		coroutines.reset(self)
+		# Recreate the items adapter when the schedule is re-initialized.
+		self._items = items_adapter(self.schedule)
 
 	@property
 	def items(self):
@@ -73,17 +82,17 @@ class qtcoroutines(coroutines, sequence):
 		"""See qtitem."""
 
 		super(sequence, self).init_edit_widget(False)
-		self._items = items_adapter(self.schedule)
 		self.treewidget = tree_overview_adapter(self, self.main_window,
 			overview_mode=False)
 		self.treewidget.setup(self.main_window)
 		self.treewidget.structure_change.connect(self.update)
 		self.treewidget.text_change.connect(self.update_script)
 		self.treewidget.setHeaderLabels([_(u'Item name'), (u'Run if'),
-			_(u'Start time'), _(u'End time')])
+			_(u'Start time'), _(u'End time (if applicable)')])
 		self.set_focus_widget(self.treewidget)
 		self.edit_vbox.addWidget(self.treewidget)
-		self.add_text(u"This plug-in is a proof of concept. It's "
+		self.add_text(
+			u'This plug-in is a proof of concept. Its '
 			u'functionality may change.')
 		self.add_line_edit_control(u'duration', u'Duration',
 			u'Total duration of the coroutines').setValidator(
@@ -109,9 +118,18 @@ class qtcoroutines(coroutines, sequence):
 						max_depth=max_depth-1, extra_info=cond)
 					child = widget.child(widget.childCount()-1)
 					child.setText(2, safe_decode(start_time))
-					child.setText(3, safe_decode(end_time))
+					if not self.is_oneshot_coroutine(item):
+						child.setText(3, safe_decode(end_time))
 		if toplevel is not None:
 			toplevel.addChild(widget)
 		else:
 			widget.set_draggable(False)
 		return widget
+
+	def insert_child_item(self, item_name, index=0):
+
+		if not self.is_coroutine(item_name):
+			self.experiment.notify(
+				_(u'"%s" does not support coroutines.') % item_name)
+			return
+		sequence.insert_child_item(self, item_name, index=index)

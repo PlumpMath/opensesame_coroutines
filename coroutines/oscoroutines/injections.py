@@ -19,6 +19,33 @@ along with OpenSesame.  If not, see <http://www.gnu.org/licenses/>.
 
 from libopensesame.py3compat import *
 
+# A list of items that are one-shot coroutines, i.e. that don't use the end
+# time. This list is only used if the item does not have an
+# is_oneshot_coroutine attribute.
+oneshot_coroutines = [u'sketchpad']
+
+def mouse_response(self):
+
+	"""
+	desc:
+		A coroutines() function to be injected into mouse_response items.
+	"""
+
+	self._mouse.timeout = 0
+	alive = True
+	yield
+	self.set_item_onset()
+	if self._flush:
+		self._mouse.flush()
+	self.set_sri()
+	while alive:
+		button, pos, time = self._mouse.get_click()
+		if button is not None:
+			break
+		alive = yield
+	self.process_response_mouseclick((button, pos, time))
+	self.response_bookkeeping()
+
 def keyboard_response(self):
 
 	"""

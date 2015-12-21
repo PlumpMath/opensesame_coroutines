@@ -64,7 +64,14 @@ class tree_overview_adapter(tree_overview):
 		if col == 2:
 			start_time = _time
 		elif col == 3:
-			end_time = _time
+			# In the GUI one-shot coroutines are not associated with an
+			# end time. In the runtime, their end time is equal to the start
+			# time.
+			if self.coroutines.is_oneshot_coroutine(item_name):
+				_time = u''
+				end_time = start_time
+			else:
+				end_time = _time
 		else:
 			raise TypeError(u'col should be in 0-3 range')
 		self.coroutines.schedule[index] = item_name, start_time, end_time, cond

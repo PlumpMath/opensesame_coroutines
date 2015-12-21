@@ -1,12 +1,16 @@
 # Coroutines plug-in for OpenSesame
 
-Copyright 2015-2016 Sebastiaan Mathôt
-s.mathot@cogsci.nl
+Copyright 2015-2016 Sebastiaan Mathôt  \
+s.mathot@cogsci.nl  \
 http://osdoc.cogsci.nl/
 
 ## About
 
 This plug-in is a proof of concept for concurrent item execution in OpenSesame; that is, it allows items to run in parallel without requiring threading.
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/usage/coroutines/>
 
 ## License
 
